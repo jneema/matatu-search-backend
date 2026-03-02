@@ -1,7 +1,8 @@
 from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
 
-class MatatuBase(BaseModel):
+# --- Input Schemas ---
+class MatatuCreate(BaseModel):
     saccoName: str
     matatuName: str
     matatuNumber: Optional[str] = None
@@ -15,21 +16,30 @@ class MatatuBase(BaseModel):
     rating: Optional[float] = None
     contacts: Optional[str] = None
 
-class RouteCreate(BaseModel):
-    town: str = "Nairobi"
+class NewDestination(BaseModel):
+    town: str
     road: str
     destination: str
     departure: str
     distance: Optional[str] = None
     comments: Optional[str] = None
-    matatus: List[MatatuBase]
 
+class RouteCreate(NewDestination):
+    matatus: List[MatatuCreate]
+
+class NewRoad(BaseModel):
+    town: str
+    road: str
+
+# --- Output Schemas ---
 class TownOut(BaseModel):
+    id: int
     name: str
     model_config = ConfigDict(from_attributes=True)
 
 class RoadOut(BaseModel):
-    name: str 
+    id: int
+    name: str
     model_config = ConfigDict(from_attributes=True)
 
 class DestinationOut(BaseModel):
@@ -37,8 +47,9 @@ class DestinationOut(BaseModel):
     name: str
     description: Optional[str] = None
     model_config = ConfigDict(from_attributes=True)
-    
+
 class MatatuOut(BaseModel):
+    id: int
     sacco_name: str
     matatu_name: str
     peak_fare: int
@@ -48,7 +59,6 @@ class MatatuOut(BaseModel):
 
 class RouteDetailOut(BaseModel):
     id: int
-    road: str
     destination: str
     departure: str
     distance: Optional[str]
