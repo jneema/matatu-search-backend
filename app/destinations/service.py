@@ -3,10 +3,10 @@ from sqlalchemy import select
 from fastapi import HTTPException
 from typing import Sequence, List
 
-import app.models as models
+import app.core.models as models
 from app.routes.service import create_route_with_matatus
 from app.destinations.schemas import BulkDestinationsCreate, DestinationOut
-from app.common_schemas import NewDestination
+from app.core.common_schemas import NewDestination
 
 # Queries
 async def get_destinations(db: AsyncSession, road_name: str) -> Sequence[models.Destination]:

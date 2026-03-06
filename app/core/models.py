@@ -1,7 +1,7 @@
 from typing import List, Optional
 from sqlalchemy import ForeignKey, JSON, Text, Table, Column,  Float, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from app.database import Base
+from app.core.database import Base
 from sqlalchemy.sql.schema import Table as SATable
 
 road_destination_association: SATable = Table(

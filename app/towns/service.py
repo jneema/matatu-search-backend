@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import Sequence, List, Dict, Union
 
-import app.models as models
+import app.core.models as models
 import app.towns.schemas as schemas
 
 

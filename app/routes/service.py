@@ -3,7 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from typing import Sequence, List
 
-import app.models as models
+import app.core.models as models
 from app.routes.schemas import RouteDetailOut, RouteCreate
 
 

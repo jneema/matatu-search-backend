@@ -2,10 +2,10 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Dict, Union
 
-from app.database import get_db
+from app.core.database import get_db
 from app.destinations.service import create_destination, bulk_create_destinations, get_destinations_action
 from app.destinations.schemas import DestinationOut, BulkDestinationsCreate
-from app.common_schemas import NewDestination
+from app.core.common_schemas import NewDestination
 
 
 router = APIRouter(prefix="/destinations", tags=["destinations"])

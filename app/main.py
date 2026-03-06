@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
-from app.database import engine, Base
+from app.core.database import engine, Base
 from fastapi.middleware.cors import CORSMiddleware
 from app.towns.router import router as towns_router
 from app.roads.router import router as roads_router

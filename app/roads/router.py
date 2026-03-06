@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Dict, Union
 
-from app.database import get_db
+from app.core.database import get_db
 from app.roads.schemas import NewRoad, RoadOut, BulkRoadsCreate
 from app.roads.service import get_roads_action, create_road, bulk_create_roads
 

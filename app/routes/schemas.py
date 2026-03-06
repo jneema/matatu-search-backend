@@ -1,7 +1,7 @@
 from pydantic import BaseModel, ConfigDict, Field
 from typing import List
 from app.matatus.schemas import MatatuBase, MatatuOut
-from app.common_schemas import NewDestination
+from app.core.common_schemas import NewDestination
 
 
 class RouteCreate(NewDestination):

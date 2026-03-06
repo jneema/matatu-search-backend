@@ -3,7 +3,7 @@ from sqlalchemy import select
 from fastapi import HTTPException
 from typing import Sequence, List
 
-import app.models as models
+import app.core.models as models
 from app.roads.schemas import BulkRoadsCreate, RoadOut
 
 

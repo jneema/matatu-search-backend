@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Dict, Union
 
-from app.database import get_db
+from app.core.database import get_db
 import app.towns.service as service
 from app.towns.schemas import TownOut
 

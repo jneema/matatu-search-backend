@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Dict, Union
 
-from app.database import get_db
+from app.core.database import get_db
 from app.routes.schemas import RouteDetailOut, RouteCreate
 from app.routes.service import get_routes_with_matatus_action, create_route_with_matatus
 
