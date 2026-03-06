@@ -1,10 +1,13 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
-from database import engine, Base
+from app.database import engine, Base
 from fastapi.middleware.cors import CORSMiddleware
-from routers import route_router
+from app.towns.router import router as towns_router
+from app.roads.router import router as roads_router
+from app.destinations.router import router as destinations_router
+from app.routes.router import router as routes_router
 
-# Create tables on startup (In production, use Alembic)
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
@@ -17,8 +20,13 @@ async def lifespan(app: FastAPI):
     # await conn.run_sync(Base.metadata.create_all)
 
 app = FastAPI(lifespan=lifespan, title="Matatu Search API",
-              version="1.0.0", docs_url="/docs")
-app.include_router(route_router.router)
+              version="1.0.0", docs_url="/developer/docs")
+
+app.include_router(towns_router, prefix="/api")
+app.include_router(roads_router, prefix="/api")
+app.include_router(destinations_router, prefix="/api")
+app.include_router(routes_router, prefix="/api")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
