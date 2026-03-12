@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict, Field
 from typing import List
-from app.matatus.schemas import MatatuBase, MatatuOut
+from app.saccos.schemas import MatatuBase, MatatuOut
 from app.core.common_schemas import NewDestination
 
 

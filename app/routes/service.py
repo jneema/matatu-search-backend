@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import or_, select, and_
 from sqlalchemy.orm import selectinload
 from typing import Sequence, List
 
@@ -19,6 +19,37 @@ async def get_routes_with_matatus(db: AsyncSession, road_name: str, dest_name: s
     )
     result = await db.execute(query)
     return result.scalars().all()
+
+
+async def get_routes_fuzzy(db: AsyncSession, road_query: str, dest_query: str) -> List[models.Destination]:
+    # 1. Handle empty input to avoid errors in split/index
+    tokens = road_query.strip().split()
+    if not tokens:
+        return []
+
+    road_filters = [models.Road.name.ilike(f"%{t}%") for t in tokens]
+
+    query = (
+        select(models.Destination)
+        .options(
+            # Chained selectinload to reach Sacco through Matatu
+            selectinload(models.Destination.matatus).selectinload(
+                models.Matatu.sacco)
+        )
+        .join(models.Destination.roads)
+        .where(
+            and_(
+                or_(*road_filters),
+                models.Destination.name.ilike(f"%{dest_query}%")
+            )
+        )
+        .order_by(models.Road.name.ilike(f"{tokens[0]}%").desc())
+    )
+
+    result = await db.execute(query)
+
+    # to ensure the list of Destinations doesn't have duplicates from the join.
+    return list(result.scalars().unique().all())
 
 
 async def get_routes_with_matatus_action(db: AsyncSession, road_name: str, dest_name: str) -> List[RouteDetailOut]:

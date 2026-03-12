@@ -48,31 +48,36 @@ class Destination(Base):
         "Matatu", back_populates="destination", cascade="all, delete-orphan")
 
 
+class Sacco(Base):
+    __tablename__ = "saccos"
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(unique=True, index=True)
+    contacts: Mapped[Optional[str]] = mapped_column(nullable=True)
+
+    matatus: Mapped[List["Matatu"]] = relationship(
+        "Matatu", back_populates="sacco")
+
+
 class Matatu(Base):
     __tablename__ = "matatus"
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     destination_id: Mapped[int] = mapped_column(ForeignKey("destinations.id"))
-
-    sacco_name: Mapped[str]
-    matatu_name: Mapped[Optional[str]]  # The "Nganya" name
-    matatu_number: Mapped[Optional[str]]  # Plate or Side No.
-
-    # Specific Stage Logic
-    cbd_stage: Mapped[str]      # e.g., "Ambassadeur", "Railways"
-    estate_stage: Mapped[str]   # e.g., "Maasai Lodge"
-
-    # Fare & Service Logic
+    sacco_id: Mapped[int] = mapped_column(ForeignKey("saccos.id"))
+    matatu_name: Mapped[Optional[str]]
+    matatu_number: Mapped[Optional[str]]
+    cbd_stage: Mapped[str]
+    estate_stage: Mapped[str]
     peak_fare_inbound: Mapped[int]
     peak_fare_outbound: Mapped[int]
     off_peak_fare: Mapped[int]
     is_express: Mapped[bool] = mapped_column(default=False)
     is_electric: Mapped[bool] = mapped_column(default=False)
-
     payment_methods: Mapped[List[str]] = mapped_column(JSON)
     rating: Mapped[Optional[float]] = mapped_column(Float, default=0.0)
-    contacts: Mapped[Optional[str]] = mapped_column(nullable=True)
-    notes: Mapped[Optional[str]] = mapped_column(
-        Text, nullable=True)  # Tips/Alerts
-
+    contacts: Mapped[Optional[str]]
+    notes: Mapped[Optional[str]] = mapped_column(Text)
+    stage_image_url: Mapped[Optional[str]] = mapped_column(nullable=True)
+    matatu_image_url: Mapped[Optional[str]] = mapped_column(nullable=True)
     destination: Mapped["Destination"] = relationship(
         "Destination", back_populates="matatus")
+    sacco: Mapped["Sacco"] = relationship("Sacco", back_populates="matatus")

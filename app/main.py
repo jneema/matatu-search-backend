@@ -6,6 +6,7 @@ from app.towns.router import router as towns_router
 from app.roads.router import router as roads_router
 from app.destinations.router import router as destinations_router
 from app.routes.router import router as routes_router
+from app.saccos.router import router as saccos_router
 
 
 @asynccontextmanager
@@ -26,6 +27,7 @@ app.include_router(towns_router, prefix="/api")
 app.include_router(roads_router, prefix="/api")
 app.include_router(destinations_router, prefix="/api")
 app.include_router(routes_router, prefix="/api")
+app.include_router(saccos_router, prefix="/api")
 
 app.add_middleware(
     CORSMiddleware,
