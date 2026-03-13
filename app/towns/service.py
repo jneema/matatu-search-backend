@@ -19,11 +19,13 @@ async def create_town_action(db: AsyncSession, name: str) -> Dict[str, Union[str
     return {"message": "Town created", "id": town.id}
 
 
-async def get_towns(db: AsyncSession) -> Sequence[models.Town]:
-    result = await db.execute(select(models.Town))
+async def get_towns(db: AsyncSession, search: str = "") -> Sequence[models.Town]:
+    query = select(models.Town)
+    if search:
+        query = query.where(models.Town.name.ilike(f"%{search}%"))
+    result = await db.execute(query)
     return result.scalars().all()
 
-
-async def get_towns_action(db: AsyncSession) -> List[schemas.TownOut]:
-    towns = await get_towns(db)
+async def get_towns_action(db: AsyncSession, search: str = "") -> List[schemas.TownOut]:
+    towns = await get_towns(db, search)
     return [schemas.TownOut(id=t.id, name=t.name) for t in towns]

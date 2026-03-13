@@ -10,8 +10,11 @@ router = APIRouter(prefix="/towns", tags=["towns"])
 
 
 @router.get("/", response_model=List[TownOut])
-async def fetch_towns(db: AsyncSession = Depends(get_db)) -> List[TownOut]:
-    return await service.get_towns_action(db)
+async def fetch_towns(
+    search: str = "",
+    db: AsyncSession = Depends(get_db)
+) -> List[TownOut]:
+    return await service.get_towns_action(db, search)
 
 
 @router.post("/new", status_code=201)
