@@ -10,9 +10,12 @@ router = APIRouter(prefix="/roads", tags=["roads"])
 
 
 @router.get("/", response_model=List[RoadOut])
-async def fetch_roads(town: str, db: AsyncSession = Depends(get_db)) -> List[RoadOut]:
-    return await get_roads_action(db, town)
-
+async def fetch_roads(
+    town: str,
+    search: str = "",
+    db: AsyncSession = Depends(get_db)
+) -> List[RoadOut]:
+    return await get_roads_action(db, town, search)
 
 @router.post("/new", status_code=201)
 async def add_road(payload: NewRoad, db: AsyncSession = Depends(get_db)) -> Dict[str, Union[str, int]]:

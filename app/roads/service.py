@@ -7,12 +7,28 @@ import app.core.models as models
 from app.roads.schemas import BulkRoadsCreate, RoadOut
 
 
-async def get_roads(db: AsyncSession, town_name: str) -> Sequence[models.Road]:
-    result = await db.execute(
-        select(models.Road).join(models.Town).where(
-            models.Town.name.ilike(f"%{town_name}%"))
+async def get_roads(
+    db: AsyncSession,
+    town_name: str,
+    search: str = ""
+) -> Sequence[models.Road]:
+    query = (
+        select(models.Road)
+        .join(models.Town)
+        .where(models.Town.name.ilike(f"%{town_name}%"))
     )
+    if search:
+        query = query.where(models.Road.name.ilike(f"%{search}%"))
+    result = await db.execute(query)
     return result.scalars().all()
+
+async def get_roads_action(
+    db: AsyncSession,
+    town_name: str,
+    search: str = ""
+) -> List[RoadOut]:
+    roads = await get_roads(db, town_name, search)
+    return [RoadOut(id=r.id, name=r.name, town_id=r.town_id) for r in roads]
 
 
 async def create_road(db: AsyncSession, town_name: str, road_name: str) -> models.Road:
@@ -37,7 +53,3 @@ async def bulk_create_roads(db: AsyncSession, payload: BulkRoadsCreate) -> List[
     await db.commit()
     return roads
 
-
-async def get_roads_action(db: AsyncSession, town_name: str) -> List[RoadOut]:
-    roads = await get_roads(db, town_name)
-    return [RoadOut(id=r.id, name=r.name, town_id=r.town_id) for r in roads]
