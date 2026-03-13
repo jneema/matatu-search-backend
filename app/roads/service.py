@@ -22,6 +22,7 @@ async def get_roads(
     result = await db.execute(query)
     return result.scalars().all()
 
+
 async def get_roads_action(
     db: AsyncSession,
     town_name: str,
@@ -35,7 +36,9 @@ async def create_road(db: AsyncSession, town_name: str, road_name: str) -> model
     res = await db.execute(select(models.Town).where(models.Town.name == town_name))
     town = res.scalar_one_or_none()
     if not town:
-        raise HTTPException(404, f"Town '{town_name}' not found")
+        raise HTTPException(
+            status_code=404, detail=f"Town '{town_name}' not found")
+
     road = models.Road(name=road_name, town_id=town.id)
     db.add(road)
     await db.commit()
@@ -47,9 +50,9 @@ async def bulk_create_roads(db: AsyncSession, payload: BulkRoadsCreate) -> List[
     res = await db.execute(select(models.Town).where(models.Town.name == payload.town))
     town = res.scalar_one_or_none()
     if not town:
-        raise HTTPException(404, f"Town '{payload.town}' not found")
+        raise HTTPException(
+            status_code=404, detail=f"Town '{payload.town}' not found")
     roads = [models.Road(name=r, town_id=town.id) for r in payload.roads]
     db.add_all(roads)
     await db.commit()
     return roads
-
