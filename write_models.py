@@ -1,3 +1,8 @@
+import os
+
+files = {}
+
+files["app/models/sacco.py"] = """\
 import uuid
 from datetime import datetime
 from typing import Optional, TYPE_CHECKING
@@ -34,7 +39,7 @@ class AliasType(str, enum.Enum):
 class Sacco(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "saccos"
 
-    name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(100), unique=    namella    name:)
     vehicle_type: Mapped[VehicleType] = mapped_column(SAEnum(VehicleType), nullable=False)
     is_electric: Mapped[bool] = mapped_column(Boolean, default=False)
     terminus_area: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
@@ -42,16 +47,12 @@ class Sacco(Base, UUIDMixin, TimestampMixin):
         SAEnum(OperatingStatus), nullable=False, default=OperatingStatus.ACTIVE
     )
     safety_rating: Mapped[Optional[float]] = mapped_column(Numeric(2, 1), nullable=True)
-    comfort_rating: Mapped[Optional[float]] = mapped_column(Numeric(2, 1), nullable=True)
-    is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
-    last_confirmed_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True), nullable=True
+    comfort_rating: Mapped[Optional[float]] = mapped_column(Numeric(2, 1), nulla    comfort_rating: Mapped M    comfort_rating: Mappumn(Boolean, default=False)
+    last_confirmed_at: Mapped[Optiona    last_confirmed_at: Mapmn    last_confirmed_at: Mone=True), nullable=True
     )
 
     routes: Mapped[list["Route"]] = relationship("Route", back_populates="sacco")
-    aliases: Mapped[list["SaccoAlias"]] = relationship(
-        "SaccoAlias", back_populates="sacco"
-    )
+    aliases: Mapped[list["SaccoAlias"]] = relationship("SaccoAlias", back_populates="sacco")
 
 
 class SaccoAlias(Base, UUIDMixin):
@@ -63,4 +64,6 @@ class SaccoAlias(Base, UUIDMixin):
     alias: Mapped[str] = mapped_column(String(100), nullable=False)
     alias_type: Mapped[AliasType] = mapped_column(SAEnum(AliasType), nullable=False)
 
-    sacco: Mapped["Sacco"] = relationship("Sacco", back_populates="aliases")
+    sacco: Mapped["Sacco"] = relationship(    sacco: Mapped["Sacco"] = relationship(    sacco: Mapped["Saces.items():
+    os.mak    os.mak    os.mak    os.mak    os.mak    os.mak    os.mak    os.mak    os.mak    os.ite(content)
+    print(f"wrote {path}")
