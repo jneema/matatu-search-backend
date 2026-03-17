@@ -1,0 +1,8 @@
+{
+  "typeCheckingMode": "basic",
+  "reportMissingTypeStubs": false,
+  "reportUnknownMemberType": false,
+  "reportUnknownVariableType": false,
+  "reportUnknownParameterType": false,
+  "reportMissingTypeArgument": false
+}
