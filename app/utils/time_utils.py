@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, time
 from zoneinfo import ZoneInfo
 
 NAIROBI_TZ = ZoneInfo("Africa/Nairobi")
@@ -18,11 +18,15 @@ def get_day_type(dt: datetime, public_holidays: list) -> int:
     return 0
 
 
-def is_time_in_window(dt: datetime, valid_from: str, valid_until: str) -> bool:
-    """Check if current time falls within a fare window e.g. '06:00' to '09:00'"""
-    current = dt.time()
-    start = datetime.strptime(valid_from, "%H:%M:%S").time()
-    end = datetime.strptime(valid_until, "%H:%M:%S").time()
+def is_time_in_window(dt: datetime, valid_from, valid_until) -> bool:
+    """Check if current time falls within a fare window."""
+    current = dt.time().replace(tzinfo=None)
+    if isinstance(valid_from, str):
+        start = datetime.strptime(valid_from, "%H:%M:%S").time()
+        end = datetime.strptime(valid_until, "%H:%M:%S").time()
+    else:
+        start = valid_from
+        end = valid_until
     return start <= current <= end
 
 
