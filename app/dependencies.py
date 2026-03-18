@@ -5,4 +5,4 @@ from app.db.redis import get_redis
 
 
 async def get_db_session(db: AsyncSession = Depends(get_db)) -> AsyncSession:
-    return db
+    return db`
