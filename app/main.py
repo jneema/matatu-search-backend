@@ -20,7 +20,12 @@ settings = get_settings()
 async def lifespan(app: FastAPI):
     log.info("startup", environment=settings.environment)
     await get_redis_client()
+    from app.jobs.scheduler import scheduler, setup_scheduler
+    setup_scheduler()
+    scheduler.start()
+    log.info("scheduler_started")
     yield
+    scheduler.shutdown()
     await close_redis()
     log.info("shutdown")
 
