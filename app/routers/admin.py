@@ -5,8 +5,10 @@ from datetime import datetime, timezone
 from app.db.session import get_db
 from app.models.alert import RouteAlert, CorridorSurge
 from app.models.intelligence import FareCorrection
-from app.schemas.alert import RouteAlertCreate, SurgeCreate
+from app.schemas.alert import RouteAlertCreate, SurgeRead, SurgeCreate
 from app.services.notification_service import notify_corridor_surge, notify_route_alert
+from app.cache.decorators import cache_delete_pattern
+from app.cache.keys import active_surges_key
 
 router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
 
@@ -27,6 +29,7 @@ async def create_alert(
     )
     db.add(new_alert)
     await db.commit()
+    await cache_delete_pattern("trip_search:*")
     await notify_route_alert(alert.route_id, alert.alert_type.value, alert.message, db)
     return {"status": "created"}
 
@@ -47,6 +50,8 @@ async def create_surge(
     )
     db.add(new_surge)
     await db.commit()
+    await cache_delete_pattern("trip_search:*")
+    await cache_delete_pattern(f"active_surges:{surge.corridor_id}*")
     await notify_corridor_surge(surge.corridor_id, surge.reason, db)
     return {"status": "created"}
 
