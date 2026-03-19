@@ -32,7 +32,8 @@ class Fare(Base, UUIDMixin):
     route_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("routes.id"), nullable=False
     )
-    fare_type: Mapped[FareType] = mapped_column(SAEnum(FareType), nullable=False)
+    fare_type: Mapped[FareType] = mapped_column(
+        SAEnum(FareType), nullable=False)
     day_type: Mapped[int] = mapped_column(SmallInteger, nullable=False)
     amount_kes: Mapped[int] = mapped_column(SmallInteger, nullable=False)
     valid_from: Mapped[str] = mapped_column(Time, nullable=False)
@@ -51,13 +52,15 @@ class PaymentMethod(Base, UUIDMixin):
         SAEnum(PaymentMethodType), nullable=False
     )
 
-    route: Mapped["Route"] = relationship("Route", back_populates="payment_methods")
+    route: Mapped["Route"] = relationship(
+        "Route", back_populates="payment_methods")
 
 
 class PublicHoliday(Base, UUIDMixin):
     __tablename__ = "public_holidays"
 
     name: Mapped[str] = mapped_column(String(100), nullable=False)
-    holiday_date: Mapped[date] = mapped_column(Date, nullable=False, unique=True)
+    holiday_date: Mapped[date] = mapped_column(
+        Date, nullable=False, unique=True)
     is_recurring: Mapped[bool] = mapped_column(Boolean, default=True)
     year: Mapped[Optional[int]] = mapped_column(SmallInteger, nullable=True)

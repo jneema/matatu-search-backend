@@ -81,8 +81,10 @@ async def build_trip_option(
         duration_mins=route.peak_duration_mins if "peak" in fare_type_now else route.avg_duration_mins,
         wait_mins_est=route.departure_frequency_mins,
         payment_methods=payment_methods,
-        safety_rating=float(route.sacco.safety_rating) if route.sacco.safety_rating else None,
-        comfort_rating=float(route.sacco.comfort_rating) if route.sacco.comfort_rating else None,
+        safety_rating=float(
+            route.sacco.safety_rating) if route.sacco.safety_rating else None,
+        comfort_rating=float(
+            route.sacco.comfort_rating) if route.sacco.comfort_rating else None,
         likely_full=likely_full,
         tags=tags,
         data_confidence=confidence,

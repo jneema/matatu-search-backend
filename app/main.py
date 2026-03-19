@@ -1,10 +1,12 @@
 import structlog
 from contextlib import asynccontextmanager
+from typing import Any, Callable
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.requests import Request
+from starlette.responses import Response
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-
 from app.config import get_settings
 from app.db.redis import get_redis_client, close_redis
 from app.middleware.request_id import RequestIDMiddleware
@@ -38,7 +40,12 @@ app = FastAPI(
 )
 
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Cast silences the Pylance false positive — slowapi's handler is correctly
+# typed at runtime but its signature is narrower than ExceptionHandler expects.
+_handler: Callable[[Request, Any], Response] = _rate_limit_exceeded_handler # type: ignore[assignment]
+
+app.add_exception_handler(RateLimitExceeded, _handler) # type: ignore[arg-type]
 
 app.add_middleware(LoggingMiddleware)
 app.add_middleware(RequestIDMiddleware)

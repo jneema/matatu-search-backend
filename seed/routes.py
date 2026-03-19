@@ -19,13 +19,24 @@ async def seed_routes(db: AsyncSession, saccos: dict, stages: dict) -> dict:
     cbd_stages = result.scalars().all()
     gpo_stage = next((s for s in cbd_stages if "GPO" in s.name),
                      cbd_stages[0] if cbd_stages else None)
+    if gpo_stage is None:
+        raise RuntimeError("GPO stage not found in CBD stages")
+
     otc_stage = next((s for s in cbd_stages if "OTC" in s.name),
                      cbd_stages[0] if cbd_stages else None)
+    if otc_stage is None:
+        raise RuntimeError("OTC stage not found in CBD stages")
 
     result = await db.execute(select(Stage).where(Stage.area == "Juja", Stage.direction == Direction.INBOUND))
     juja_stage = (await result.scalars().first()) if False else None
-    juja_result = await db.execute(select(Stage).where(Stage.area == "Juja", Stage.direction == Direction.INBOUND))
+    juja_result = await db.execute(
+        select(Stage).where(Stage.area == "Juja",
+                            Stage.direction == Direction.INBOUND)
+    )
     juja_stage = juja_result.scalars().first()
+    if juja_stage is None:
+        raise RuntimeError(
+            "Juja inbound stage not found — run seed_stages first")
 
     now = datetime.now(timezone.utc)
 

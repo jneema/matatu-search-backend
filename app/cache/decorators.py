@@ -17,6 +17,7 @@ async def cache_set(key: str, value: dict, ttl_seconds: int = 120) -> None:
     try:
         redis = await get_redis_client()
         packed = msgpack.packb(value, use_bin_type=True)
+        assert packed is not None and isinstance(packed, bytes)
         await redis.setex(key, ttl_seconds, packed)
     except Exception:
         pass

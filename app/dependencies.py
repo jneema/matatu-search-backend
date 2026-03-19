@@ -25,7 +25,8 @@ async def get_current_admin(
         )
         role = payload.get("role")
         if role != "admin":
-            raise HTTPException(status_code=403, detail="Admin access required")
+            raise HTTPException(
+                status_code=403, detail="Admin access required")
         return payload
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid or expired token")

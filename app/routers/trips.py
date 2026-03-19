@@ -1,3 +1,5 @@
+from unittest import result
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -35,14 +37,16 @@ async def search_trips(
     if not origin_result:
         raise HTTPException(
             status_code=404,
-            detail={"error": "STAGE_NOT_FOUND", "message": f"Could not resolve origin stage from '{origin}'"}
+            detail={"error": "STAGE_NOT_FOUND",
+                    "message": f"Could not resolve origin stage from '{origin}'"}
         )
 
     dest_result = await resolve_stage(destination, db)
     if not dest_result:
         raise HTTPException(
             status_code=404,
-            detail={"error": "STAGE_NOT_FOUND", "message": f"Could not resolve destination stage from '{destination}'"}
+            detail={"error": "STAGE_NOT_FOUND",
+                    "message": f"Could not resolve destination stage from '{destination}'"}
         )
 
     origin_stage = origin_result.stage
@@ -52,7 +56,8 @@ async def search_trips(
 
     # Only cache when no user-specific params are passed
     use_cache = not any([budget_kes, payment_preference, user_lat, user_lng])
-    cache_key = trip_search_key(str(origin_stage.id), str(dest_stage.id), now.hour)
+    cache_key = trip_search_key(
+        str(origin_stage.id), str(dest_stage.id), now.hour)
 
     if use_cache:
         cached = await cache_get(cache_key)
@@ -74,7 +79,7 @@ async def search_trips(
             selectinload(Route.path),
         )
     )
-    routes = result.scalars().all()
+    routes = list(result.scalars().all())
 
     response = await build_trip_response(
         routes=routes,

@@ -26,7 +26,8 @@ class Occupancy(Base, UUIDMixin):
     )
     day_of_week: Mapped[int] = mapped_column(SmallInteger, nullable=False)
     hour_slot: Mapped[int] = mapped_column(SmallInteger, nullable=False)
-    avg_load_factor: Mapped[float] = mapped_column(Numeric(3, 2), nullable=False)
+    avg_load_factor: Mapped[float] = mapped_column(
+        Numeric(3, 2), nullable=False)
     sample_count: Mapped[int] = mapped_column(Integer, default=0)
     updated_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
@@ -41,7 +42,8 @@ class FareCorrection(Base, UUIDMixin):
     route_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("routes.id"), nullable=False
     )
-    reported_amount_kes: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    reported_amount_kes: Mapped[int] = mapped_column(
+        SmallInteger, nullable=False)
     fare_type: Mapped[str] = mapped_column(String(50), nullable=False)
     reported_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
@@ -53,7 +55,8 @@ class FareCorrection(Base, UUIDMixin):
         String(64), nullable=True
     )
 
-    route: Mapped["Route"] = relationship("Route", back_populates="corrections")
+    route: Mapped["Route"] = relationship(
+        "Route", back_populates="corrections")
 
 
 class SearchLog(Base, UUIDMixin):
@@ -68,8 +71,10 @@ class SearchLog(Base, UUIDMixin):
         UUID(as_uuid=True), nullable=True
     )
     result_count: Mapped[int] = mapped_column(SmallInteger, nullable=False)
-    had_transfer: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
-    session_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    had_transfer: Mapped[Optional[bool]] = mapped_column(
+        Boolean, nullable=True)
+    session_id: Mapped[Optional[str]] = mapped_column(
+        String(64), nullable=True)
     queried_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )
@@ -84,4 +89,5 @@ class AppSettings(Base):
     updated_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
-    updated_by: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    updated_by: Mapped[Optional[str]] = mapped_column(
+        String(100), nullable=True)

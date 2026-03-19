@@ -52,7 +52,8 @@ async def rate_sacco(
         current = float(sacco.comfort_rating or 0)
         sacco.comfort_rating = round((current + rating.score) / 2, 1)
     else:
-        raise HTTPException(status_code=422, detail="type must be 'safety' or 'comfort'")
+        raise HTTPException(
+            status_code=422, detail="type must be 'safety' or 'comfort'")
 
     await db.commit()
     return {"status": "ok"}

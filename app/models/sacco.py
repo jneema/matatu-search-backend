@@ -35,20 +35,25 @@ class Sacco(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "saccos"
 
     name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
-    vehicle_type: Mapped[VehicleType] = mapped_column(SAEnum(VehicleType), nullable=False)
+    vehicle_type: Mapped[VehicleType] = mapped_column(
+        SAEnum(VehicleType), nullable=False)
     is_electric: Mapped[bool] = mapped_column(Boolean, default=False)
-    terminus_area: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    terminus_area: Mapped[Optional[str]] = mapped_column(
+        String(100), nullable=True)
     operating_status: Mapped[OperatingStatus] = mapped_column(
         SAEnum(OperatingStatus), nullable=False, default=OperatingStatus.ACTIVE
     )
-    safety_rating: Mapped[Optional[float]] = mapped_column(Numeric(2, 1), nullable=True)
-    comfort_rating: Mapped[Optional[float]] = mapped_column(Numeric(2, 1), nullable=True)
+    safety_rating: Mapped[Optional[float]] = mapped_column(
+        Numeric(2, 1), nullable=True)
+    comfort_rating: Mapped[Optional[float]] = mapped_column(
+        Numeric(2, 1), nullable=True)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     last_confirmed_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
 
-    routes: Mapped[list["Route"]] = relationship("Route", back_populates="sacco")
+    routes: Mapped[list["Route"]] = relationship(
+        "Route", back_populates="sacco")
     aliases: Mapped[list["SaccoAlias"]] = relationship(
         "SaccoAlias", back_populates="sacco"
     )
@@ -61,6 +66,7 @@ class SaccoAlias(Base, UUIDMixin):
         UUID(as_uuid=True), ForeignKey("saccos.id"), nullable=False
     )
     alias: Mapped[str] = mapped_column(String(100), nullable=False)
-    alias_type: Mapped[AliasType] = mapped_column(SAEnum(AliasType), nullable=False)
+    alias_type: Mapped[AliasType] = mapped_column(
+        SAEnum(AliasType), nullable=False)
 
     sacco: Mapped["Sacco"] = relationship("Sacco", back_populates="aliases")

@@ -28,9 +28,12 @@ class Stage(Base, UUIDMixin):
     name: Mapped[str] = mapped_column(String(150), nullable=False)
     area: Mapped[str] = mapped_column(String(100), nullable=False)
     landmark: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
-    landmark_sw: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
-    stage_type: Mapped[StageType] = mapped_column(SAEnum(StageType), nullable=False)
-    direction: Mapped[Direction] = mapped_column(SAEnum(Direction), nullable=False)
+    landmark_sw: Mapped[Optional[str]] = mapped_column(
+        String(300), nullable=True)
+    stage_type: Mapped[StageType] = mapped_column(
+        SAEnum(StageType), nullable=False)
+    direction: Mapped[Direction] = mapped_column(
+        SAEnum(Direction), nullable=False)
     latitude: Mapped[float] = mapped_column(Numeric(9, 6), nullable=False)
     longitude: Mapped[float] = mapped_column(Numeric(9, 6), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)

@@ -15,14 +15,16 @@ async def run_correction_consensus():
         window_days = 7
 
         result = await db.execute(
-            select(AppSettings).where(AppSettings.key == "correction_consensus_count")
+            select(AppSettings).where(
+                AppSettings.key == "correction_consensus_count")
         )
         setting = result.scalar_one_or_none()
         if setting:
             consensus_count = int(setting.value)
 
         result = await db.execute(
-            select(AppSettings).where(AppSettings.key == "correction_window_days")
+            select(AppSettings).where(
+                AppSettings.key == "correction_window_days")
         )
         setting = result.scalar_one_or_none()
         if setting:

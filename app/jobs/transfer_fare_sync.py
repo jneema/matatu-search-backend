@@ -59,4 +59,5 @@ async def run_transfer_fare_sync():
                 updated += 1
 
         await db.commit()
-    log.info("job_done", job="transfer_fare_sync", updated=updated, deactivated=deactivated)
+    log.info("job_done", job="transfer_fare_sync",
+             updated=updated, deactivated=deactivated)

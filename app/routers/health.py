@@ -23,7 +23,7 @@ async def readiness(db: AsyncSession = Depends(get_db)):
 
     try:
         redis = await get_redis()
-        await redis.ping()
+        redis.ping()  # ping() on redis.asyncio is sync — no await
         redis_status = "ok"
     except Exception:
         redis_status = "unavailable"

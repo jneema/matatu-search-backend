@@ -31,5 +31,6 @@ async def login(body: LoginRequest):
         "role": "admin",
         "exp": datetime.now(timezone.utc) + timedelta(minutes=settings.access_token_expire_minutes),
     }
-    token = jwt.encode(payload, settings.secret_key, algorithm=settings.algorithm)
+    token = jwt.encode(payload, settings.secret_key,
+                       algorithm=settings.algorithm)
     return TokenResponse(access_token=token, token_type="bearer")

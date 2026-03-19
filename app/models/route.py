@@ -29,7 +29,8 @@ class Corridor(Base, UUIDMixin):
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
-    routes: Mapped[list["Route"]] = relationship("Route", back_populates="corridor")
+    routes: Mapped[list["Route"]] = relationship(
+        "Route", back_populates="corridor")
     surges: Mapped[list["CorridorSurge"]] = relationship(
         "CorridorSurge", back_populates="corridor"
     )
@@ -50,9 +51,12 @@ class Route(Base, UUIDMixin, TimestampMixin):
     dest_stage_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("stages.id"), nullable=False
     )
-    via_description: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
-    via_description_sw: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
-    distance_km: Mapped[Optional[float]] = mapped_column(Numeric(6, 2), nullable=True)
+    via_description: Mapped[Optional[str]] = mapped_column(
+        String(200), nullable=True)
+    via_description_sw: Mapped[Optional[str]] = mapped_column(
+        String(200), nullable=True)
+    distance_km: Mapped[Optional[float]] = mapped_column(
+        Numeric(6, 2), nullable=True)
     is_express: Mapped[bool] = mapped_column(Boolean, default=False)
     route_status: Mapped[RouteStatus] = mapped_column(
         SAEnum(RouteStatus), nullable=False, default=RouteStatus.ACTIVE
@@ -60,8 +64,10 @@ class Route(Base, UUIDMixin, TimestampMixin):
     departure_frequency_mins: Mapped[Optional[int]] = mapped_column(
         SmallInteger, nullable=True
     )
-    avg_duration_mins: Mapped[Optional[int]] = mapped_column(SmallInteger, nullable=True)
-    peak_duration_mins: Mapped[Optional[int]] = mapped_column(SmallInteger, nullable=True)
+    avg_duration_mins: Mapped[Optional[int]] = mapped_column(
+        SmallInteger, nullable=True)
+    peak_duration_mins: Mapped[Optional[int]] = mapped_column(
+        SmallInteger, nullable=True)
     fare_last_verified_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
@@ -124,8 +130,10 @@ class Transfer(Base, UUIDMixin):
     transfer_stage_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("stages.id"), nullable=False
     )
-    avg_wait_mins: Mapped[Optional[int]] = mapped_column(SmallInteger, nullable=True)
-    total_fare_kes: Mapped[Optional[int]] = mapped_column(SmallInteger, nullable=True)
+    avg_wait_mins: Mapped[Optional[int]] = mapped_column(
+        SmallInteger, nullable=True)
+    total_fare_kes: Mapped[Optional[int]] = mapped_column(
+        SmallInteger, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     leg1_route: Mapped["Route"] = relationship(
