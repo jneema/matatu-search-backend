@@ -10,7 +10,7 @@ from app.db.redis import get_redis_client, close_redis
 from app.middleware.request_id import RequestIDMiddleware
 from app.middleware.logging import LoggingMiddleware
 from app.middleware.rate_limit import limiter
-from app.routers import health, trips, stages, saccos, alerts, corrections, bundle, admin
+from app.routers import health, trips, stages, saccos, alerts, corrections, bundle, admin, auth
 
 log = structlog.get_logger()
 settings = get_settings()
@@ -58,3 +58,4 @@ app.include_router(alerts.router)
 app.include_router(corrections.router)
 app.include_router(bundle.router)
 app.include_router(admin.router)
+app.include_router(auth.router)

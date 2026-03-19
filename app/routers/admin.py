@@ -5,10 +5,10 @@ from datetime import datetime, timezone
 from app.db.session import get_db
 from app.models.alert import RouteAlert, CorridorSurge
 from app.models.intelligence import FareCorrection
-from app.schemas.alert import RouteAlertCreate, SurgeRead, SurgeCreate
+from app.schemas.alert import RouteAlertCreate, SurgeCreate
 from app.services.notification_service import notify_corridor_surge, notify_route_alert
 from app.cache.decorators import cache_delete_pattern
-from app.cache.keys import active_surges_key
+from app.dependencies import get_current_admin
 
 router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
 
@@ -17,6 +17,7 @@ router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
 async def create_alert(
     alert: RouteAlertCreate,
     db: AsyncSession = Depends(get_db),
+    _: dict = Depends(get_current_admin),
 ):
     new_alert = RouteAlert(
         route_id=alert.route_id,
@@ -38,6 +39,7 @@ async def create_alert(
 async def create_surge(
     surge: SurgeCreate,
     db: AsyncSession = Depends(get_db),
+    _: dict = Depends(get_current_admin),
 ):
     new_surge = CorridorSurge(
         corridor_id=surge.corridor_id,
@@ -57,7 +59,10 @@ async def create_surge(
 
 
 @router.get("/corrections/pending")
-async def pending_corrections(db: AsyncSession = Depends(get_db)):
+async def pending_corrections(
+    db: AsyncSession = Depends(get_db),
+    _: dict = Depends(get_current_admin),
+):
     result = await db.execute(
         select(FareCorrection).where(FareCorrection.status == "pending")
     )
