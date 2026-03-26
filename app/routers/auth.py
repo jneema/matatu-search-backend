@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from jose import jwt
 from pydantic import BaseModel
 from app.config import get_settings
-
+ 
 settings = get_settings()
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 

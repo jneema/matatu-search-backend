@@ -24,13 +24,26 @@ async def resolve_stage(
 ) -> StageResolveResult | None:
     query_lower = query.lower().strip()
 
-    result = await db.execute(
-        select(Stage).where(
-            Stage.is_active == True,
-            func.lower(Stage.name) == query_lower,
-        )
+    # 1. Build the query for an exact name match
+    stmt = select(Stage).where(
+        Stage.is_active == True,
+        func.lower(Stage.name) == query_lower,
     )
-    exact = result.scalar_one_or_none()
+
+    # 2. Apply direction filter if provided
+    if direction_filter and direction_filter != Direction.BOTH:
+        stmt = stmt.where(
+            or_(
+                Stage.direction == direction_filter,
+                Stage.direction == Direction.BOTH
+            )
+        )
+
+    # 3. Use .first() instead of .scalar_one_or_none()
+    # This prevents the 500 crash even if data is slightly messy
+    result = await db.execute(stmt)
+    exact = result.scalars().first()
+
     if exact:
         return StageResolveResult(
             stage=StageRead.model_validate(exact),

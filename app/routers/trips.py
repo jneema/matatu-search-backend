@@ -33,7 +33,7 @@ async def search_trips(
 ):
     from fastapi import HTTPException
 
-    origin_result = await resolve_stage(origin, db, direction_filter=Direction.INBOUND)
+    origin_result = await resolve_stage(origin, db)
     if not origin_result:
         raise HTTPException(
             status_code=404,

@@ -4,7 +4,7 @@ from sqlalchemy import select, func
 from app.db.session import AsyncSessionLocal
 from app.models.intelligence import FareCorrection, CorrectionStatus, AppSettings
 from app.models.route import Route
-
+ 
 log = structlog.get_logger()
 
 

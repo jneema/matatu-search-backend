@@ -1,7 +1,6 @@
 import msgpack
 from app.db.redis import get_redis_client
 
-
 async def cache_get(key: str) -> dict | None:
     try:
         redis = await get_redis_client()
