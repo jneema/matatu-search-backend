@@ -2,7 +2,7 @@ from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.route import Route
 from app.models.sacco import VehicleType
-from app.schemas.trip import TripOption, TripResponse
+from app.schemas.trip import TripOption, TripResponse, StageEmbed
 from app.services.fare_service import get_current_fare, get_active_surge, apply_surge
 from app.services.trust_service import get_data_confidence
 from app.utils.time_utils import NAIROBI_TZ
@@ -69,6 +69,30 @@ async def build_trip_option(
     if any(a.alert_type.value == "short_loop" for a in active_alerts):
         tags.append("short_loop_warning")
 
+    origin_embed = StageEmbed(
+        id=route.origin_stage.id,
+        name=route.origin_stage.name,
+        area=route.origin_stage.area,
+        landmark=route.origin_stage.landmark,
+        latitude=float(
+            route.origin_stage.latitude) if route.origin_stage.latitude else None,
+        longitude=float(
+            route.origin_stage.longitude) if route.origin_stage.longitude else None,
+        direction=route.origin_stage.direction.value,
+    ) if route.origin_stage else None
+
+    dest_embed = StageEmbed(
+        id=route.dest_stage.id,
+        name=route.dest_stage.name,
+        area=route.dest_stage.area,
+        landmark=route.dest_stage.landmark,
+        latitude=float(
+            route.dest_stage.latitude) if route.dest_stage.latitude else None,
+        longitude=float(
+            route.dest_stage.longitude) if route.dest_stage.longitude else None,
+        direction=route.dest_stage.direction.value,
+    ) if route.dest_stage else None
+
     return TripOption(
         route_id=route.id,
         sacco=route.sacco.name,
@@ -92,6 +116,8 @@ async def build_trip_option(
         surge_reason=surge_reason,
         active_alerts=active_alerts,
         is_transfer=False,
+        origin_stage=origin_embed,
+        dest_stage=dest_embed,
     )
 
 

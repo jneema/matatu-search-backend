@@ -5,6 +5,19 @@ from app.models.sacco import VehicleType
 from app.schemas.alert import RouteAlertRead
 
 
+class StageEmbed(BaseModel):
+    id: UUID
+    name: str
+    area: str
+    landmark: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    direction: str
+
+    class Config:
+        from_attributes = True
+
+
 class TransferDetail(BaseModel):
     transfer_stage: str
     avg_wait_mins: Optional[int] = None
@@ -36,6 +49,8 @@ class TripOption(BaseModel):
     active_alerts: list[RouteAlertRead] = []
     is_transfer: bool = False
     transfer_detail: Optional[TransferDetail] = None
+    origin_stage: Optional[StageEmbed] = None
+    dest_stage: Optional[StageEmbed] = None
 
 
 class TripSearchRequest(BaseModel):

@@ -53,7 +53,7 @@ async def resolve_stage(
 
     result = await db.execute(select(Stage).where(Stage.is_active == True))
     all_stages = result.scalars().all()
-
+    print(f"Fuzzy matching '{query}' against {len(all_stages)} stages", {result})
     best_stage = None
     best_score = 0.0
 

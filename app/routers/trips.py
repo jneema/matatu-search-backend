@@ -1,13 +1,10 @@
-from unittest import result
-
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy import select
 from datetime import datetime, timezone
 from app.db.session import get_db
 from app.models.route import Route, RouteStatus
-from app.models.stage import Direction
 from app.schemas.trip import TripResponse
 from app.services.stage_resolver import resolve_stage
 from app.services.scenario_engine import build_trip_response
@@ -31,8 +28,6 @@ async def search_trips(
     lang: str = Query("en"),
     db: AsyncSession = Depends(get_db),
 ):
-    from fastapi import HTTPException
-
     origin_result = await resolve_stage(origin, db)
     if not origin_result:
         raise HTTPException(
@@ -54,10 +49,8 @@ async def search_trips(
 
     now = datetime.now(timezone.utc)
 
-    # Only cache when no user-specific params are passed
     use_cache = not any([budget_kes, payment_preference, user_lat, user_lng])
-    cache_key = trip_search_key(
-        str(origin_stage.id), str(dest_stage.id), now.hour)
+    cache_key = trip_search_key(str(origin_stage.id), str(dest_stage.id), now.hour)
 
     if use_cache:
         cached = await cache_get(cache_key)
@@ -77,6 +70,8 @@ async def search_trips(
             selectinload(Route.alerts),
             selectinload(Route.occupancy),
             selectinload(Route.path),
+            selectinload(Route.origin_stage),
+            selectinload(Route.dest_stage),
         )
     )
     routes = list(result.scalars().all())
