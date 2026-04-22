@@ -1,97 +1,223 @@
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
-from sqlalchemy import select
+from sqlalchemy import select, and_
+from sqlalchemy.orm import selectinload, aliased
 from datetime import datetime, timezone
-from app.db.session import get_db
-from app.models.route import Route, RouteStatus
-from app.schemas.trip import TripResponse
-from app.services.stage_resolver import resolve_stage
-from app.services.scenario_engine import build_trip_response
-from app.cache.keys import trip_search_key
-from app.cache.decorators import cache_get, cache_set
-import structlog
 
-log = structlog.get_logger()
+from app.db.session import get_db
+from app.models.route import Route, RoutePath, RouteStatus
+from app.schemas.trip import TripResponse, TripOption, TransferDetail
+from app.services.stage_resolver import resolve_stage
+
 router = APIRouter(prefix="/api/v1/trips", tags=["trips"])
 
+
+TRANSFER_HUBS = [
+    "OTC Terminal",
+    "GPO Drop-off",
+    "GPO Pick-up",
+    "Roysambu (TRM)",
+    "Githurai 45",
+]
+
+
+# -----------------------------
+# HELPERS
+# -----------------------------
+
+def extract_fare(route):
+    if not route.fares:
+        return 0
+    return min(f.amount_kes for f in route.fares)
+
+
+def estimate_wait_time(route_a, route_b):
+    freq_a = getattr(route_a, "departure_frequency_mins", 10)
+    freq_b = getattr(route_b, "departure_frequency_mins", 10)
+    return int(((freq_a + freq_b) / 2) * 0.6)
+
+
+def build_trip_option(route) -> TripOption:
+    return TripOption(
+        route_id=route.id,
+        sacco=route.sacco.name,
+        vehicle_type=route.sacco.vehicle_type,
+        via=None,
+        terminus_area=getattr(route.sacco, "terminus_area", None),
+        fare=extract_fare(route),
+        fare_type_now="STANDARD",
+        off_peak_fare=None,
+        peak_fare=None,
+        is_off_peak_now=True,
+        duration_mins=getattr(route, "avg_duration_mins", None),
+        wait_mins_est=None,
+        payment_methods=[],
+        safety_rating=getattr(route.sacco, "safety_rating", None),
+        comfort_rating=getattr(route.sacco, "comfort_rating", None),
+        likely_full=False,
+        tags=[],
+        data_confidence="0.85",
+        surge_active=False,
+        surge_reason=None,
+        active_alerts=[],
+        is_transfer=False,
+        transfer_detail=None,
+        origin_stage=None,
+        dest_stage=None,
+    )
+
+
+def pick_best_transfer(routes_a, routes_b):
+    for hub in TRANSFER_HUBS:
+        for ra in routes_a:
+            ra_stages = [p.stage.name for p in ra.path]
+            if hub not in ra_stages:
+                continue
+
+            for rb in routes_b:
+                rb_stages = [p.stage.name for p in rb.path]
+                if hub in rb_stages:
+                    return hub, ra, rb
+
+    return None, None, None
+
+
+# -----------------------------
+# SEARCH ENDPOINT (FIXED)
+# -----------------------------
 
 @router.get("/search", response_model=TripResponse)
 async def search_trips(
     origin: str = Query(...),
     destination: str = Query(...),
-    budget_kes: int | None = Query(None),
-    payment_preference: str | None = Query(None),
-    user_lat: float | None = Query(None),
-    user_lng: float | None = Query(None),
-    include_transfers: bool = Query(True),
-    lang: str = Query("en"),
     db: AsyncSession = Depends(get_db),
 ):
-    origin_result = await resolve_stage(origin, db)
-    if not origin_result:
-        raise HTTPException(
-            status_code=404,
-            detail={"error": "STAGE_NOT_FOUND",
-                    "message": f"Could not resolve origin stage from '{origin}'"}
-        )
-
-    dest_result = await resolve_stage(destination, db)
-    if not dest_result:
-        raise HTTPException(
-            status_code=404,
-            detail={"error": "STAGE_NOT_FOUND",
-                    "message": f"Could not resolve destination stage from '{destination}'"}
-        )
-
-    origin_stage = origin_result.stage
-    dest_stage = dest_result.stage
-
     now = datetime.now(timezone.utc)
 
-    use_cache = not any([budget_kes, payment_preference, user_lat, user_lng])
-    cache_key = trip_search_key(str(origin_stage.id), str(dest_stage.id), now.hour)
+    origin_result = await resolve_stage(origin, db)
+    dest_result = await resolve_stage(destination, db)
 
-    if use_cache:
-        cached = await cache_get(cache_key)
-        if cached:
-            log.info("cache_hit", key=cache_key)
-            return cached
+    if not origin_result or not dest_result:
+        raise HTTPException(status_code=404, detail="Stage not found")
 
-    result = await db.execute(
-        select(Route).where(
-            Route.origin_stage_id == origin_stage.id,
-            Route.dest_stage_id == dest_stage.id,
-            Route.route_status == RouteStatus.ACTIVE,
-        ).options(
+    origin_st = origin_result.stage
+    dest_st = dest_result.stage
+
+    p1 = aliased(RoutePath)
+    p2 = aliased(RoutePath)
+
+    # ---------------- DIRECT ROUTES ----------------
+    direct_query = (
+        select(Route)
+        .join(p1, Route.id == p1.route_id)
+        .join(p2, Route.id == p2.route_id)
+        .where(
+            and_(
+                Route.route_status == RouteStatus.ACTIVE,
+                p1.stage_id == origin_st.id,
+                p2.stage_id == dest_st.id,
+                p1.stop_order < p2.stop_order,
+            )
+        )
+        .options(
             selectinload(Route.sacco),
             selectinload(Route.fares),
-            selectinload(Route.payment_methods),
-            selectinload(Route.alerts),
-            selectinload(Route.occupancy),
-            selectinload(Route.path),
-            selectinload(Route.origin_stage),
-            selectinload(Route.dest_stage),
+            selectinload(Route.path).selectinload(RoutePath.stage),
         )
     )
-    routes = list(result.scalars().all())
 
-    response = await build_trip_response(
-        routes=routes,
-        origin_stage_names=[origin_stage.name],
-        dest_stage_names=[dest_stage.name],
-        trip_label=f"{origin_stage.name} → {dest_stage.name}",
-        db=db,
-        now=now,
-        user_lat=user_lat,
-        user_lng=user_lng,
-        budget_kes=budget_kes,
-        payment_preference=payment_preference,
-        lang=lang,
+    direct_routes = (await db.execute(direct_query)).scalars().all()
+
+    # ================= DIRECT RESPONSE =================
+    if direct_routes:
+        options = [build_trip_option(direct_routes[0])]
+
+        return TripResponse(
+            trip=f"{origin_st.name} → {dest_st.name} (DIRECT)",
+            queried_at=now.isoformat(),
+            origin_stages=[origin_st.name],
+            dest_stages=[dest_st.name],
+            scenarios={"DIRECT": options},
+            all_options=options,
+        )
+
+    # ---------------- ORIGIN ROUTES ----------------
+    origin_query = (
+        select(Route)
+        .join(RoutePath)
+        .where(
+            Route.route_status == RouteStatus.ACTIVE,
+            RoutePath.stage_id == origin_st.id,
+        )
+        .options(
+            selectinload(Route.path).selectinload(RoutePath.stage),
+            selectinload(Route.fares),
+            selectinload(Route.sacco),
+        )
     )
 
-    if use_cache:
-        await cache_set(cache_key, response.model_dump(mode="json"), ttl_seconds=120)
-        log.info("cache_set", key=cache_key)
+    origin_routes = (await db.execute(origin_query)).scalars().all()
 
-    return response
+    # ---------------- DEST ROUTES ----------------
+    dest_query = (
+        select(Route)
+        .join(RoutePath)
+        .where(
+            Route.route_status == RouteStatus.ACTIVE,
+            RoutePath.stage_id == dest_st.id,
+        )
+        .options(
+            selectinload(Route.path).selectinload(RoutePath.stage),
+            selectinload(Route.fares),
+            selectinload(Route.sacco),
+        )
+    )
+
+    dest_routes = (await db.execute(dest_query)).scalars().all()
+
+    hub, route_a, route_b = pick_best_transfer(origin_routes, dest_routes)
+
+    if not route_a or not route_b:
+        raise HTTPException(status_code=404, detail="No routes found")
+
+    transfer_option = TripOption(
+        route_id=route_a.id,
+        sacco=route_a.sacco.name,
+        vehicle_type=route_a.sacco.vehicle_type,
+        via=hub,
+        terminus_area=None,
+        fare=extract_fare(route_a) + extract_fare(route_b),
+        fare_type_now="TRANSFER",
+        off_peak_fare=None,
+        peak_fare=None,
+        is_off_peak_now=True,
+        duration_mins=getattr(route_a, "avg_duration_mins", 0) + getattr(route_b, "avg_duration_mins", 0),
+        wait_mins_est=estimate_wait_time(route_a, route_b),
+        payment_methods=[],
+        safety_rating=None,
+        comfort_rating=None,
+        likely_full=False,
+        tags=["TRANSFER"],
+        data_confidence="0.80",
+        surge_active=False,
+        surge_reason=None,
+        active_alerts=[],
+        is_transfer=True,
+        transfer_detail=TransferDetail(
+            transfer_stage=hub, # type: ignore
+            avg_wait_mins=estimate_wait_time(route_a, route_b),
+            leg1_sacco=route_a.sacco.name,
+            leg2_sacco=route_b.sacco.name,
+        ),
+        origin_stage=None,
+        dest_stage=None,
+    )
+
+    return TripResponse(
+        trip=f"{origin_st.name} → {dest_st.name} (TRANSFER via {hub})",
+        queried_at=now.isoformat(),
+        origin_stages=[origin_st.name],
+        dest_stages=[dest_st.name],
+        scenarios={"TRANSFER": [transfer_option]},
+        all_options=[transfer_option],
+    )

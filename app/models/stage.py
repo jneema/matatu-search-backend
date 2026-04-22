@@ -19,7 +19,6 @@ class StageType(str, enum.Enum):
 class Direction(str, enum.Enum):
     INBOUND = "inbound"
     OUTBOUND = "outbound"
-    BOTH = "both"
 
 
 class Stage(Base, UUIDMixin):

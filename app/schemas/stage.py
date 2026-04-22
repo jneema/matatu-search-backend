@@ -10,7 +10,6 @@ class StageBase(BaseModel):
     landmark: Optional[str] = None
     landmark_sw: Optional[str] = None
     stage_type: StageType
-    direction: Direction
     latitude: float
     longitude: float
 

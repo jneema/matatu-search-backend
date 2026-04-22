@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.db.session import get_db
@@ -16,12 +16,28 @@ async def list_stages(
     db: AsyncSession = Depends(get_db),
 ):
     query = select(Stage).where(Stage.is_active == True)
+
     if area:
         query = query.where(Stage.area.ilike(f"%{area}%"))
+
     if direction:
-        query = query.where(Stage.direction == direction)
+        direction = direction.lower()
+
+        if direction == "inbound":
+            query = query.where(Stage.area != "CBD")
+
+        elif direction == "outbound":
+            query = query.where(Stage.area == "CBD")
+
+        elif direction == "between":
+            pass  # no filter
+
     result = await db.execute(query)
-    return result.scalars().all()
+    stages = result.scalars().all()
+
+    unique = {(s.name, s.area): s for s in stages}.values()
+
+    return list(unique)
 
 
 @router.get("/nearby", response_model=list[StageRead])

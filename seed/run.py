@@ -1,5 +1,7 @@
 import asyncio
 from app.db.session import AsyncSessionLocal
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import text
 from seed.app_settings import seed_app_settings
 from seed.public_holidays import seed_public_holidays
 from seed.stages import seed_stages
@@ -8,10 +10,23 @@ from seed.routes import seed_routes
 from seed.fares import seed_fares
 from seed.transfers import seed_transfers
 
+async def clear_database(db: AsyncSession):
+    print("  dropping all data...")
+    # This keeps the tables but deletes all rows
+    # The 'CASCADE' ensures that dependent records (like Aliases or Routes) are cleared too
+    tables = ["sacco_aliases", "routes", "stages", "saccos", "public_holidays", "app_settings", "transfers", "fares", "corridors"]
+    
+    for table in tables:
+        await db.execute(text(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE;"))
+    
+    await db.commit()
+    print("  database cleared.")
 
 async def run():
     print("seeding database...")
     async with AsyncSessionLocal() as db:
+        await clear_database(db)
+
         print("app settings...")
         await seed_app_settings(db)
 
