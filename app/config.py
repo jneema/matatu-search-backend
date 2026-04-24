@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
+from pydantic import Field
 
 
 class Settings(BaseSettings):
@@ -9,21 +10,15 @@ class Settings(BaseSettings):
         case_sensitive=False,
     )
 
-    # Database
-    database_url: str
-
-    # Redis
-    redis_url: str = "redis://localhost:6379/0"
-
-    # Auth
-    secret_key: str
-    algorithm: str = "HS256"
-    access_token_expire_minutes: int = 60
-
-    # App
-    environment: str = "development"
-    log_level: str = "INFO"
-    cors_origins: str = "http://localhost:3000"
+    database_url: str = Field(default=..., alias="DATABASE_URL")
+    redis_url: str = Field(default=..., alias="REDIS_URL")
+    secret_key: str = Field(default=..., alias="SECRET_KEY")
+    algorithm: str = Field(default=..., alias="ALGORITHM")
+    access_token_expire_minutes: int = Field(
+        default=..., alias="ACCESS_TOKEN_EXPIRE_IN_MINUTES")
+    environment: str = Field(default=..., alias="ENVIRONMENT")
+    log_level: str = Field(default=..., alias="LOG_LEVEL")
+    cors_origins: str = Field(default=..., alias="CORS_ORIGINS")
 
     @property
     def cors_origins_list(self) -> list[str]:

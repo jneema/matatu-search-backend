@@ -18,8 +18,6 @@ async def submit_correction(
     request: Request,
     db: AsyncSession = Depends(get_db),
 ):
-    # Verify the route exists before inserting — prevents a FK violation 500
-    # and returns a clean 404 to the caller instead.
     route = await db.get(Route, route_id)
     if route is None:
         raise HTTPException(status_code=404, detail="Route not found")

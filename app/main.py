@@ -41,11 +41,11 @@ app = FastAPI(
 
 app.state.limiter = limiter
 
-# Cast silences the Pylance false positive — slowapi's handler is correctly
-# typed at runtime but its signature is narrower than ExceptionHandler expects.
-_handler: Callable[[Request, Any], Response] = _rate_limit_exceeded_handler # type: ignore[assignment]
 
-app.add_exception_handler(RateLimitExceeded, _handler) # type: ignore[arg-type]
+async def rate_limit_handler(request: Request, exc: Exception) -> Response:
+    return _rate_limit_exceeded_handler(request, exc)  # type: ignore
+
+app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
 
 app.add_middleware(LoggingMiddleware)
 app.add_middleware(RequestIDMiddleware)

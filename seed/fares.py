@@ -4,10 +4,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from app.models.route import Route
 from app.models.fare import Fare, FareType, PaymentMethod, PaymentMethodType
+from typing import Any
 
 
-async def seed_fares(db: AsyncSession):
-    # Fetch routes with their Sacco and Path info to determine trip length
+async def seed_fares(db: AsyncSession) -> None:
     result = await db.execute(
         select(Route).options(
             selectinload(Route.sacco),
@@ -16,7 +16,6 @@ async def seed_fares(db: AsyncSession):
     )
     routes = result.scalars().all()
 
-    # Configuration for Terminus-to-Terminus (Long) trips
     fare_configs = {
         "Super Metro": {"peak": 100, "off_peak": 80,  "late_night": 120, "weekend": 80},
         "Kenya Mpya":  {"peak": 80,  "off_peak": 60,  "late_night": 100, "weekend": 70},
@@ -40,9 +39,6 @@ async def seed_fares(db: AsyncSession):
         config = fare_configs.get(
             sacco_name, {"peak": 100, "off_peak": 80, "late_night": 120, "weekend": 80})
 
-        # --- SECTIONAL FARE LOGIC ---
-        # If the route has many stops (like Kenya Mpya), we simulate
-        # that short distance 'Between' trips are cheaper than the full route.
         is_short_route = len(route.path) < 4
         fare_modifier = 0.7 if is_short_route else 1.0
 
@@ -75,7 +71,6 @@ async def seed_fares(db: AsyncSession):
 
         total_fares += len(fares)
 
-        # Add Payment Methods
         methods = payment_configs.get(sacco_name, [PaymentMethodType.CASH])
         for method in methods:
             db.add(PaymentMethod(route_id=route.id, method=method))

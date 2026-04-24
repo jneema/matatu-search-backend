@@ -40,7 +40,6 @@ async def resolve_stage(
             score=100.0,
         )
 
-    # 2. Fuzzy fallback
     result = await db.execute(select(Stage).where(Stage.is_active == True))
     all_stages = result.scalars().all()
 

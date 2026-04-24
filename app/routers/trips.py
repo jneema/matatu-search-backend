@@ -21,10 +21,6 @@ TRANSFER_HUBS = [
 ]
 
 
-# -----------------------------
-# HELPERS
-# -----------------------------
-
 def extract_fare(route):
     if not route.fares:
         return 0
@@ -82,10 +78,6 @@ def pick_best_transfer(routes_a, routes_b):
     return None, None, None
 
 
-# -----------------------------
-# SEARCH ENDPOINT (FIXED)
-# -----------------------------
-
 @router.get("/search", response_model=TripResponse)
 async def search_trips(
     origin: str = Query(...),
@@ -106,7 +98,6 @@ async def search_trips(
     p1 = aliased(RoutePath)
     p2 = aliased(RoutePath)
 
-    # ---------------- DIRECT ROUTES ----------------
     direct_query = (
         select(Route)
         .join(p1, Route.id == p1.route_id)
@@ -124,24 +115,10 @@ async def search_trips(
             selectinload(Route.fares),
             selectinload(Route.path).selectinload(RoutePath.stage),
         )
+        .distinct()
     )
-
     direct_routes = (await db.execute(direct_query)).scalars().all()
 
-    # ================= DIRECT RESPONSE =================
-    if direct_routes:
-        options = [build_trip_option(direct_routes[0])]
-
-        return TripResponse(
-            trip=f"{origin_st.name} → {dest_st.name} (DIRECT)",
-            queried_at=now.isoformat(),
-            origin_stages=[origin_st.name],
-            dest_stages=[dest_st.name],
-            scenarios={"DIRECT": options},
-            all_options=options,
-        )
-
-    # ---------------- ORIGIN ROUTES ----------------
     origin_query = (
         select(Route)
         .join(RoutePath)
@@ -155,10 +132,8 @@ async def search_trips(
             selectinload(Route.sacco),
         )
     )
-
     origin_routes = (await db.execute(origin_query)).scalars().all()
 
-    # ---------------- DEST ROUTES ----------------
     dest_query = (
         select(Route)
         .join(RoutePath)
@@ -172,52 +147,78 @@ async def search_trips(
             selectinload(Route.sacco),
         )
     )
-
     dest_routes = (await db.execute(dest_query)).scalars().all()
+
+    scenarios: dict = {}
+    all_options: list[TripOption] = []
+
+    if direct_routes:
+        direct_options = []
+        for route in direct_routes:
+            opt = build_trip_option(route)
+            if route.is_express:
+                opt.tags = ["EXPRESS"]
+            direct_options.append(opt)
+
+        direct_options.sort(key=lambda o: (o.duration_mins or 999))
+        scenarios["DIRECT"] = direct_options
+        all_options.extend(direct_options)
 
     hub, route_a, route_b = pick_best_transfer(origin_routes, dest_routes)
 
-    if not route_a or not route_b:
+    if hub and route_a and route_b:
+        transfer_opt = TripOption(
+            route_id=route_a.id,
+            sacco=route_a.sacco.name,
+            vehicle_type=route_a.sacco.vehicle_type,
+            via=hub,
+            terminus_area=None,
+            fare=extract_fare(route_a) + extract_fare(route_b),
+            fare_type_now="TRANSFER",
+            off_peak_fare=None,
+            peak_fare=None,
+            is_off_peak_now=True,
+            duration_mins=(
+                getattr(route_a, "avg_duration_mins", 0)
+                + getattr(route_b, "avg_duration_mins", 0)
+                + estimate_wait_time(route_a, route_b)
+            ),
+            wait_mins_est=estimate_wait_time(route_a, route_b),
+            payment_methods=[],
+            safety_rating=None,
+            comfort_rating=None,
+            likely_full=False,
+            tags=["TRANSFER"],
+            data_confidence="0.75",
+            surge_active=False,
+            surge_reason=None,
+            active_alerts=[],
+            is_transfer=True,
+            transfer_detail=TransferDetail(
+                transfer_stage=hub,
+                avg_wait_mins=estimate_wait_time(route_a, route_b),
+                leg1_sacco=route_a.sacco.name,
+                leg2_sacco=route_b.sacco.name,
+            ),
+            origin_stage=None,
+            dest_stage=None,
+        )
+        scenarios["TRANSFER"] = [transfer_opt]
+        all_options.append(transfer_opt)
+
+    if not all_options:
         raise HTTPException(status_code=404, detail="No routes found")
 
-    transfer_option = TripOption(
-        route_id=route_a.id,
-        sacco=route_a.sacco.name,
-        vehicle_type=route_a.sacco.vehicle_type,
-        via=hub,
-        terminus_area=None,
-        fare=extract_fare(route_a) + extract_fare(route_b),
-        fare_type_now="TRANSFER",
-        off_peak_fare=None,
-        peak_fare=None,
-        is_off_peak_now=True,
-        duration_mins=getattr(route_a, "avg_duration_mins", 0) + getattr(route_b, "avg_duration_mins", 0),
-        wait_mins_est=estimate_wait_time(route_a, route_b),
-        payment_methods=[],
-        safety_rating=None,
-        comfort_rating=None,
-        likely_full=False,
-        tags=["TRANSFER"],
-        data_confidence="0.80",
-        surge_active=False,
-        surge_reason=None,
-        active_alerts=[],
-        is_transfer=True,
-        transfer_detail=TransferDetail(
-            transfer_stage=hub, # type: ignore
-            avg_wait_mins=estimate_wait_time(route_a, route_b),
-            leg1_sacco=route_a.sacco.name,
-            leg2_sacco=route_b.sacco.name,
-        ),
-        origin_stage=None,
-        dest_stage=None,
-    )
+    all_options.sort(key=lambda o: (
+        1 if o.is_transfer else 0,
+        o.duration_mins or 999,
+    ))
 
     return TripResponse(
-        trip=f"{origin_st.name} → {dest_st.name} (TRANSFER via {hub})",
+        trip=f"{origin_st.name} → {dest_st.name}",
         queried_at=now.isoformat(),
         origin_stages=[origin_st.name],
         dest_stages=[dest_st.name],
-        scenarios={"TRANSFER": [transfer_option]},
-        all_options=[transfer_option],
+        scenarios=scenarios,
+        all_options=all_options,
     )
