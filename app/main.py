@@ -1,18 +1,12 @@
 import structlog
 from contextlib import asynccontextmanager
-from typing import Any, Callable
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.requests import Request
-from starlette.responses import Response
-from slowapi import _rate_limit_exceeded_handler
-from slowapi.errors import RateLimitExceeded
+
+
 from app.config import get_settings
-from app.db.redis import get_redis_client, close_redis
-from app.middleware.request_id import RequestIDMiddleware
-from app.middleware.logging import LoggingMiddleware
-from app.middleware.rate_limit import limiter
-from app.routers import health, trips, stages, saccos, alerts, corrections, bundle, admin, auth
+from app.routers import stages, saccos, routes, search
+from app.api.db import init_pool, close_pool
 
 log = structlog.get_logger()
 settings = get_settings()
@@ -21,15 +15,12 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     log.info("startup", environment=settings.environment)
-    await get_redis_client()
-    from app.jobs.scheduler import scheduler, setup_scheduler
-    setup_scheduler()
-    scheduler.start()
-    log.info("scheduler_started")
+
+    await init_pool()
+
     yield
-    scheduler.shutdown()
-    await close_redis()
-    log.info("shutdown")
+
+    await close_pool()
 
 
 app = FastAPI(
@@ -39,16 +30,6 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-app.state.limiter = limiter
-
-
-async def rate_limit_handler(request: Request, exc: Exception) -> Response:
-    return _rate_limit_exceeded_handler(request, exc)  # type: ignore
-
-app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
-
-app.add_middleware(LoggingMiddleware)
-app.add_middleware(RequestIDMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
@@ -57,12 +38,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(health.router)
-app.include_router(trips.router)
 app.include_router(stages.router)
 app.include_router(saccos.router)
-app.include_router(alerts.router)
-app.include_router(corrections.router)
-app.include_router(bundle.router)
-app.include_router(admin.router)
-app.include_router(auth.router)
+app.include_router(routes.router)
+app.include_router(search.router)
