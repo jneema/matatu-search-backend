@@ -198,3 +198,16 @@ async def delete_alias(
     if result == "DELETE 0":
         raise HTTPException(status_code=404, detail="Alias not found")
     return {"message": f"Alias {alias_id} removed"}
+
+@router.post("/{sacco_id}/verify", response_model=SaccoOut)
+async def verify_sacco(
+    sacco_id: uuid.UUID,
+    conn: asyncpg.Connection = Depends(get_conn),
+):
+    row = await conn.fetchrow(
+        "UPDATE saccos SET is_verified = true WHERE id = $1 RETURNING *",
+        str(sacco_id),
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="SACCO not found")
+    return dict(row)

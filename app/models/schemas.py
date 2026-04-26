@@ -13,6 +13,7 @@ class RouteStatus(str, Enum):
     active = "active"
     suspended = "suspended"
     seasonal = "seasonal"
+    inactive = "inactive"
 
 
 class VehicleType(str, Enum):
@@ -26,7 +27,7 @@ class OperatingStatus(str, Enum):
     active = "active"
     suspended = "suspended"
     seasonal = "seasonal"
-
+    inactive = "inactive"
 
 class AliasType(str, Enum):
     abbreviation = "abbreviation"
@@ -70,6 +71,7 @@ class AlertType(str, Enum):
     delayed = "delayed"
     suspended_temporary = "suspended_temporary"
     diversion = "diversion"
+    inactive = "inactive"
 
 
 class CorrectionStatus(str, Enum):

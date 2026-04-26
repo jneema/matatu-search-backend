@@ -196,30 +196,12 @@ async def add_stage_hour(
 @router.post("/{stage_id}/verify", response_model=StageOut)
 async def verify_stage(
     stage_id: uuid.UUID,
-    verification: StageVerify,
     conn: asyncpg.Connection = Depends(get_conn),
 ):
-    row = await conn.fetchrow("SELECT * FROM stages WHERE id = $1", str(stage_id))
-    if not row:
-        raise HTTPException(status_code=404, detail="Stage not found")
-
-    updated_row = await conn.fetchrow(
-        """
-        UPDATE stages
-        SET latitude = $1,
-            longitude = $2,
-            image_url = COALESCE($3, image_url),
-            is_active = true
-        WHERE id = $4
-        RETURNING *
-        """,
-        verification.latitude,
-        verification.longitude,
-        verification.image_url,
+    row = await conn.fetchrow(
+        "UPDATE stages SET is_active = true WHERE id = $1 RETURNING *",
         str(stage_id),
     )
-
-    if not updated_row:
-        raise HTTPException(status_code=500, detail="Update failed")
-
-    return dict(updated_row)
+    if not row:
+        raise HTTPException(status_code=404, detail="SACCO not found")
+    return dict(row)

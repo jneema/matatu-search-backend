@@ -314,3 +314,17 @@ async def delete_payment_method(
     if result == "DELETE 0":
         raise HTTPException(status_code=404, detail="Payment method not found")
     return {"message": f"Payment method {pm_id} removed"}
+
+
+@router.post("/{route_id}/verify", response_model=RouteOut)
+async def verify_route(
+    route_id: uuid.UUID,
+    conn: asyncpg.Connection = Depends(get_conn),
+):
+    row = await conn.fetchrow(
+        "UPDATE routes SET route_status = 'active' WHERE id = $1 RETURNING *",
+        str(route_id),
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="Route not found")
+    return dict(row)
