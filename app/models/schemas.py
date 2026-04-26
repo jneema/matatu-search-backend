@@ -120,6 +120,7 @@ class SaccoCreate(BaseModel):
         None, ge=0, le=5, decimal_places=1)
     comfort_rating:   Optional[Decimal] = Field(
         None, ge=0, le=5, decimal_places=1)
+    image_url:        Optional[str] = None 
     is_verified:      bool = False
 
 
@@ -128,6 +129,10 @@ class SaccoOut(SaccoCreate):
     last_confirmed_at: Optional[datetime]
     created_at:       datetime
 
+class SaccoVerify(BaseModel):
+    is_verified: bool = True
+    image_url:   Optional[str] = None
+    operating_status: Optional[OperatingStatus] = None
 
 class SaccoAliasCreate(BaseModel):
     sacco_id:   UUID
@@ -146,9 +151,16 @@ class StageCreate(BaseModel):
     landmark_sw: Optional[str] = Field(None, max_length=300)
     stage_type:  StageType
     direction:   Direction
-    latitude:    Decimal = Field(..., ge=-90,  le=90)
-    longitude:   Decimal = Field(..., ge=-180, le=180)
+    latitude:    Optional[Decimal] = Field(None, ge=-90,  le=90)
+    longitude:   Optional[Decimal] = Field(None, ge=-180, le=180)
+    image_url:   Optional[str] = None
     is_active:   bool = True
+
+class StageVerify(BaseModel):
+    latitude:  Decimal = Field(..., ge=-90,  le=90)
+    longitude: Decimal = Field(..., ge=-180, le=180)
+    image_url: Optional[str] = None
+    is_active: bool = True
 
 
 class StageOut(StageCreate):
@@ -186,6 +198,7 @@ class RouteOut(RouteCreate):
     fare_last_verified_at: Optional[datetime]
     last_confirmed_at:    Optional[datetime]
     created_at:           datetime
+    
 
 
 class RoutePathCreate(BaseModel):

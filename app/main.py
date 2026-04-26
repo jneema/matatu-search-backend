@@ -2,10 +2,11 @@ import structlog
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 
 from app.config import get_settings
-from app.routers import stages, saccos, routes, search
+from app.routers import stages, saccos, routes, search, upload
 from app.db import init_pool, close_pool
 
 log = structlog.get_logger()
@@ -42,3 +43,6 @@ app.include_router(stages.router)
 app.include_router(saccos.router)
 app.include_router(routes.router)
 app.include_router(search.router)
+app.include_router(upload.router)
+
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
