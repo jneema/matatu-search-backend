@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     )
 
     database_url: str = Field(default=..., alias="DATABASE_URL")
+    alembic_db_url: str = Field(default=..., alias="ALEMBIC_DB_URL")
     redis_url: str = Field(default=..., alias="REDIS_URL")
     secret_key: str = Field(default=..., alias="SECRET_KEY")
     algorithm: str = Field(default=..., alias="ALGORITHM")

@@ -6,7 +6,7 @@ from typing import Optional
 import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from app.api.db import get_conn
+from app.db import get_conn
 from app.models.schemas import (
     StageCreate, StageOut,
     StageHourCreate, StageHourOut,
@@ -18,45 +18,67 @@ router = APIRouter(prefix="/stages", tags=["Stages"])
 
 
 @router.get("", response_model=list[StageOut], summary="List stages")
+@router.get("", response_model=list[StageOut], summary="List stages")
 async def list_stages(
-    stage_type: Optional[str] = Query(None, description="'formal' or 'informal'"),
-    direction:  Optional[str] = Query(None, description="'inbound' or 'outbound'"),
-    area:       Optional[str] = Query(None, description="Filter by area, e.g. 'Githurai'"),
+    stage_type: Optional[str] = Query(None),
+    direction:  Optional[str] = Query(None),
+    from_id:    Optional[uuid.UUID] = Query(None, description="Filter for stages reachable from this origin"),
+    area:       Optional[str] = Query(None),
     is_active:  bool = Query(True),
-    limit:      int  = Query(50, ge=1, le=200),
-    offset:     int  = Query(0, ge=0),
+    limit:      int  = Query(50),
+    offset:     int  = Query(0),
     conn: asyncpg.Connection = Depends(get_conn),
 ):
-    filters = ["is_active = $1"]
     params: list = [is_active]
+    filters = ["s.is_active = $1"]
+    
+    select_clause = "SELECT DISTINCT s.id, s.name, s.area, s.landmark, s.landmark_sw, s.stage_type, s.direction, s.latitude, s.longitude, s.is_active"
+    from_clause = "FROM stages s"
+
+    if from_id:
+        from_clause += """ 
+            JOIN route_paths rp_dest ON s.id = rp_dest.stage_id
+            JOIN route_paths rp_origin ON rp_dest.route_id = rp_origin.route_id
+        """
+        params.append(str(from_id)) 
+        filters.append(f"rp_origin.stage_id = ${len(params)}")
+        filters.append(f"rp_dest.stop_order > rp_origin.stop_order")
+        
+        if direction:
+            from_clause += " JOIN routes r ON rp_dest.route_id = r.id"
+            params.append(direction)
+            filters.append(f"r.direction = ${len(params)}::direction")
+            direction = None 
 
     if stage_type:
         params.append(stage_type)
-        filters.append(f"stage_type = ${len(params)}::stagetype")
-    if direction:
+        filters.append(f"s.stage_type = ${len(params)}::stagetype")
+        
+    if direction: 
         params.append(direction)
-        filters.append(f"direction = ${len(params)}::direction")
+        filters.append(f"s.direction = ${len(params)}::direction")
+        
     if area:
         params.append(f"%{area}%")
-        filters.append(f"area ILIKE ${len(params)}")
+        filters.append(f"s.area ILIKE ${len(params)}")
 
     where = " AND ".join(filters)
-    params += [limit, offset]
+    
+    params.append(limit)
+    limit_idx = len(params)
+    params.append(offset)
+    offset_idx = len(params)
 
-    rows = await conn.fetch(
-        f"""
-        SELECT id, name, area, landmark, landmark_sw,
-               stage_type, direction, latitude, longitude, is_active
-        FROM   stages
-        WHERE  {where}
-        ORDER  BY area, name
-        LIMIT  ${len(params)-1} OFFSET ${len(params)}
-        """,
-        *params,
-    )
+    query = f"""
+        {select_clause}
+        {from_clause}
+        WHERE {where}
+        ORDER BY s.area, s.name
+        LIMIT ${limit_idx} OFFSET ${offset_idx}
+    """
+
+    rows = await conn.fetch(query, *params)
     return [dict(r) for r in rows]
-
-
 
 @router.get("/{stage_id}", response_model=StageOut, summary="Get a stage")
 async def get_stage(

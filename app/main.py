@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.routers import stages, saccos, routes, search
-from app.api.db import init_pool, close_pool
+from app.db import init_pool, close_pool
 
 log = structlog.get_logger()
 settings = get_settings()

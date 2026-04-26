@@ -7,6 +7,7 @@ import time
 from datetime import datetime, timezone
 from typing import Any
 
+
 def _get_psycopg2():
     try:
         import psycopg2
@@ -19,30 +20,40 @@ def _get_psycopg2():
 
 from seed.data import (
     CORRIDORS, SACCOS, SACCO_ALIASES, STAGES, STAGE_HOURS,
+    STAGE_ALIASES,
     ROUTES, ROUTE_PATHS, FARES, PAYMENT_METHODS,
     PUBLIC_HOLIDAYS, OCCUPANCY, APP_SETTINGS,
-    STAGE_CBD_GPO, STAGE_MFANGANO,
-    ROUTE_45_OUT, ROUTE_45_IN, ROUTE_44_OUT, ROUTE_44_IN,
-    ROUTE_LUCKY_OUT, ROUTE_LUCKY_IN, ROUTE_KAS_OUT, ROUTE_KAS_IN,
-    ROUTE_MIREMA_OUT, ROUTE_MIREMA_IN, ROUTE_TRM_OUT, ROUTE_TRM_IN,
-    ROUTE_CLAY_OUT, ROUTE_CLAY_IN, ROUTE_UMOINER_OUT, ROUTE_UMOINER_IN,
+    ROUTE_45_OUT,      ROUTE_45_IN,
+    ROUTE_44_OUT,      ROUTE_44_IN,
+    ROUTE_LUCKY_OUT,   ROUTE_LUCKY_IN,
+    ROUTE_KAS_OUT,     ROUTE_KAS_IN,
+    ROUTE_MIREMA_OUT,  ROUTE_MIREMA_IN,
+    ROUTE_TRM_OUT,     ROUTE_TRM_IN,
+    ROUTE_CLAY_OUT,    ROUTE_CLAY_IN,
+    ROUTE_UMOINER_OUT, ROUTE_UMOINER_IN,
+    ROUTE_RUIRU_OUT,   ROUTE_RUIRU_IN,
+    ROUTE_JUJA_OUT,    ROUTE_JUJA_IN,
+    ROUTE_THIKA_OUT,   ROUTE_THIKA_IN,
 )
 
 _OUTBOUND_ROUTES = {
     ROUTE_45_OUT, ROUTE_44_OUT, ROUTE_LUCKY_OUT, ROUTE_KAS_OUT,
     ROUTE_MIREMA_OUT, ROUTE_TRM_OUT, ROUTE_CLAY_OUT, ROUTE_UMOINER_OUT,
+    ROUTE_RUIRU_OUT, ROUTE_JUJA_OUT, ROUTE_THIKA_OUT,
 }
 _INBOUND_ROUTES = {
     ROUTE_45_IN, ROUTE_44_IN, ROUTE_LUCKY_IN, ROUTE_KAS_IN,
     ROUTE_MIREMA_IN, ROUTE_TRM_IN, ROUTE_CLAY_IN, ROUTE_UMOINER_IN,
+    ROUTE_RUIRU_IN, ROUTE_JUJA_IN, ROUTE_THIKA_IN,
 }
 
 
-BOLD  = "\033[1m"
-GREEN = "\033[32m"
-CYAN  = "\033[36m"
-YELLOW= "\033[33m"
-RESET = "\033[0m"
+BOLD   = "\033[1m"
+GREEN  = "\033[32m"
+CYAN   = "\033[36m"
+YELLOW = "\033[33m"
+RESET  = "\033[0m"
+
 
 def _h(text: str) -> str:
     return f"{BOLD}{CYAN}{text}{RESET}"
@@ -66,8 +77,8 @@ def _ask_direction() -> str:
     print(textwrap.dedent("""\
         Which direction are you travelling?
 
-          [1]  Outbound  –  CBD  →  Githurai / Kasarani / panya routes
-          [2]  Inbound   –  Githurai / Kasarani  →  CBD
+          [1]  Outbound  –  CBD  →  Githurai / Kasarani / Juja / Thika
+          [2]  Inbound   –  Githurai / Kasarani / Juja / Thika  →  CBD
           [3]  Both      –  seed all directions (default)
     """))
     while True:
@@ -84,55 +95,34 @@ def _ask_direction() -> str:
 def _ask_db_url() -> str:
     print()
     default = "postgresql://postgres:1234@localhost/matatu_db"
-    raw = input(
-        f"  Database URL [{default}]: "
-    ).strip()
+    raw = input(f"  Database URL [{default}]: ").strip()
     return raw or default
 
 
 def _print_stage_menu(direction: str) -> None:
-    """Display formal and informal stages relevant to the chosen direction."""
-    from seed.data import STAGES
-
-    outbound_formal   = []
-    outbound_informal = []
-    inbound_formal    = []
-    inbound_informal  = []
+    """Display stages relevant to the chosen direction, grouped by type."""
+    formal   = []
+    informal = []
 
     for s in STAGES:
-        row = f"    {'📍' if s['stage_type']=='formal' else '📌'}  " \
-              f"{s['name']}  ({s['area']})"
-        if s["direction"] == "outbound":
-            if s["stage_type"] == "formal":
-                outbound_formal.append(row)
-            else:
-                outbound_informal.append(row)
+        row = (
+            f"    {'📍' if s['stage_type'] == 'formal' else '📌'}  "
+            f"{s['name']}  ({s['area']})"
+        )
+        if s["stage_type"] == "formal":
+            formal.append(row)
         else:
-            if s["stage_type"] == "formal":
-                inbound_formal.append(row)
-            else:
-                inbound_informal.append(row)
-
-    show_out = direction in ("outbound", "both")
-    show_in  = direction in ("inbound",  "both")
+            informal.append(row)
 
     print()
     print(_h("  Stages being seeded"))
     print(_h("  " + "─" * 56))
-
-    if show_out:
-        print(f"\n  {BOLD}Outbound (CBD → upcountry) – Formal{RESET}")
-        for r in outbound_formal:
-            print(r)
-        print(f"\n  {BOLD}Outbound – Informal / Panya{RESET}")
-        for r in outbound_informal:
-            print(r)
-
-    if show_in:
-        print(f"\n  {BOLD}Inbound (upcountry → CBD) – Formal{RESET}")
-        for r in inbound_formal:
-            print(r)
-
+    print(f"\n  {BOLD}Formal stages{RESET}")
+    for r in formal:
+        print(r)
+    print(f"\n  {BOLD}Informal / Panya stages{RESET}")
+    for r in informal:
+        print(r)
     print()
 
 
@@ -140,26 +130,25 @@ def _filter_by_direction(direction: str) -> dict[str, list]:
     """Return only the rows relevant to the chosen direction."""
     if direction == "both":
         return {
-            "routes":        ROUTES,
-            "route_paths":   ROUTE_PATHS,
-            "fares":         FARES,
+            "routes":          ROUTES,
+            "route_paths":     ROUTE_PATHS,
+            "fares":           FARES,
             "payment_methods": PAYMENT_METHODS,
-            "occupancy":     OCCUPANCY,
+            "occupancy":       OCCUPANCY,
         }
 
     wanted = _OUTBOUND_ROUTES if direction == "outbound" else _INBOUND_ROUTES
 
     def filt(rows, key="route_id"):
-        return [r for r in rows if r.get(key) in wanted or r.get("id") in wanted]
+        return [r for r in rows if r.get(key) in wanted]
 
     return {
-        "routes":          [r for r in ROUTES     if r["id"] in wanted],
+        "routes":          [r for r in ROUTES if r["id"] in wanted],
         "route_paths":     filt(ROUTE_PATHS),
         "fares":           filt(FARES),
         "payment_methods": filt(PAYMENT_METHODS),
         "occupancy":       filt(OCCUPANCY),
     }
-
 
 
 def _insert(cur, table: str, rows: list[dict[str, Any]], dry_run: bool) -> int:
@@ -193,18 +182,19 @@ def _run_seed(db_url: str, direction: str, dry_run: bool) -> None:
         s.setdefault("created_at", now_ts)
 
     tables: list[tuple[str, list]] = [
-        ("corridors",       CORRIDORS),
-        ("saccos",          SACCOS),
-        ("sacco_aliases",   SACCO_ALIASES),
-        ("stages",          STAGES),
-        ("stage_hours",     STAGE_HOURS),
-        ("routes",          filtered["routes"]),
-        ("route_paths",     filtered["route_paths"]),
-        ("fares",           filtered["fares"]),
-        ("payment_methods", filtered["payment_methods"]),
-        ("public_holidays", PUBLIC_HOLIDAYS),
-        ("occupancy",       filtered["occupancy"]),
-        ("app_settings",    APP_SETTINGS),
+        ("corridors",        CORRIDORS),
+        ("saccos",           SACCOS),
+        ("sacco_aliases",    SACCO_ALIASES),
+        ("stages",           STAGES),
+        ("stage_aliases",    STAGE_ALIASES),       # new
+        ("stage_hours",      STAGE_HOURS),
+        ("routes",           filtered["routes"]),
+        ("route_paths",      filtered["route_paths"]),
+        ("fares",            filtered["fares"]),
+        ("payment_methods",  filtered["payment_methods"]),
+        ("public_holidays",  PUBLIC_HOLIDAYS),
+        ("occupancy",        filtered["occupancy"]),
+        ("app_settings",     APP_SETTINGS),
     ]
 
     print()
@@ -218,19 +208,19 @@ def _run_seed(db_url: str, direction: str, dry_run: bool) -> None:
     if not dry_run:
         conn = psycopg2.connect(db_url)
         conn.autocommit = False
-        cur  = conn.cursor()
+        cur = conn.cursor()
 
     total = 0
     for table, rows in tables:
-        t0  = time.perf_counter()
-        n   = _insert(cur, table, rows, dry_run)
-        ms  = (time.perf_counter() - t0) * 1000
+        t0 = time.perf_counter()
+        n  = _insert(cur, table, rows, dry_run)
+        ms = (time.perf_counter() - t0) * 1000
         total += n
-        print(_ok(f"{table:<22}  {n:>5} rows  ({ms:.0f} ms)"))
+        print(_ok(f"{table:<24}  {n:>5} rows  ({ms:.0f} ms)"))
 
     if not dry_run and conn:
         conn.commit()
-        cur.close() # type: ignore
+        cur.close()   # type: ignore
         conn.close()
 
     print()
@@ -239,12 +229,9 @@ def _run_seed(db_url: str, direction: str, dry_run: bool) -> None:
     print()
 
 
-
 def _print_route_summary(direction: str) -> None:
-    from seed.data import ROUTES, SACCOS, STAGES
-
-    sacco_name  = {s["id"]: s["name"] for s in SACCOS}
-    stage_name  = {s["id"]: s["name"] for s in STAGES}
+    sacco_name = {s["id"]: s["name"] for s in SACCOS}
+    stage_name = {s["id"]: s["name"] for s in STAGES}
     wanted = (
         _OUTBOUND_ROUTES | _INBOUND_ROUTES if direction == "both"
         else _OUTBOUND_ROUTES if direction == "outbound"
@@ -256,9 +243,9 @@ def _print_route_summary(direction: str) -> None:
     for r in ROUTES:
         if r["id"] not in wanted:
             continue
-        origin = stage_name.get(r["origin_stage_id"], "?")
-        dest   = stage_name.get(r["dest_stage_id"],   "?")
-        sacco  = sacco_name.get(r["sacco_id"],        "?")
+        origin  = stage_name.get(r["origin_stage_id"], "?")
+        dest    = stage_name.get(r["dest_stage_id"],   "?")
+        sacco   = sacco_name.get(r["sacco_id"],        "?")
         express = " [EXPRESS]" if r["is_express"] else ""
         print(f"    {BOLD}{sacco}{RESET}{express}")
         print(f"      {origin}  →  {dest}")

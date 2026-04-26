@@ -38,6 +38,13 @@ class StageType(str, Enum):
     formal = "formal"
     informal = "informal"
 
+class StageAliasCreate(BaseModel):
+    stage_id:   UUID
+    alias:      str = Field(..., max_length=150)
+    alias_type: AliasType
+
+class StageAliasOut(StageAliasCreate):
+    id: UUID
 
 class Direction(str, Enum):
     inbound = "inbound"

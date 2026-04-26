@@ -7,7 +7,7 @@ from typing import Optional
 import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from app.api.db import get_conn
+from app.db import get_conn
 from app.models.schemas import (
     SaccoCreate, SaccoOut,
     SaccoAliasCreate, SaccoAliasOut,

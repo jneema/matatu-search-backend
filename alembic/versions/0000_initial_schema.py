@@ -1,9 +1,3 @@
-"""create_all_tables
-Revision ID: 0000_create_all_tables
-Revises:
-Create Date: 2026-04-25
-"""
-
 from alembic import op  # type: ignore
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
@@ -52,7 +46,14 @@ def upgrade() -> None:
     bind = op.get_bind()
 
     for enum in ALL_ENUMS:
-        enum.create(bind, checkfirst=True)
+        op.execute(f"""
+                DO $$ 
+                BEGIN 
+                    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = '{enum.name}') THEN 
+                        CREATE TYPE {enum.name} AS ENUM {tuple(enum.enums)}; 
+                    END IF; 
+                END $$;
+            """)
 
     op.create_table(
         "saccos",
@@ -301,6 +302,17 @@ def upgrade() -> None:
     )
 
     op.create_table(
+            'stage_aliases',
+            sa.Column('id', sa.UUID(), nullable=False),
+            sa.Column('stage_id', sa.UUID(), nullable=False),
+            sa.Column('alias', sa.String(length=150), nullable=False),
+            # Use the variable instead of the string definition
+            sa.Column('alias_type', aliastype_enum, nullable=False), 
+            sa.PrimaryKeyConstraint('id'),
+            sa.ForeignKeyConstraint(['stage_id'], ['stages.id'], )
+        )
+
+    op.create_table(
         "app_settings",
         sa.Column("key",         sa.String(100), primary_key=True),
         sa.Column("value",       sa.Text(),      nullable=False),
@@ -325,6 +337,7 @@ def downgrade() -> None:
     op.drop_table("routes")
     op.drop_table("stage_hours")
     op.drop_table("stages")
+    op.drop_table('stage_aliases')
     op.drop_table("corridors")
     op.drop_table("sacco_aliases")
     op.drop_table("saccos")

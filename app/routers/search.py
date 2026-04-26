@@ -7,7 +7,7 @@ from typing import Optional
 import asyncpg
 from fastapi import APIRouter, Depends, Query
 
-from app.api.db import get_conn
+from app.db import get_conn
 from app.models.schemas import SearchResponse, RouteResult, TransferResult, StageMatch
 
 router = APIRouter(prefix="/search", tags=["Search"])
@@ -17,24 +17,25 @@ async def _resolve_stage(
     conn: asyncpg.Connection, text: str
 ) -> Optional[asyncpg.Record]:
     """
-    Fuzzy-match a stage by name or area using ILIKE.
-    Priority: exact name > name starts-with > area match.
+    Fuzzy-match a stage by name, area, or alias.
     """
     row = await conn.fetchrow(
         """
-        SELECT id, name, area, stage_type, landmark
-        FROM   stages
-        WHERE  is_active = true
+        SELECT s.id, s.name, s.area, s.stage_type, s.landmark
+        FROM stages s
+        LEFT JOIN stage_aliases sa ON sa.stage_id = s.id
+        WHERE s.is_active = true
         AND (
-            name ILIKE $1
-            OR name ILIKE $2
-            OR area ILIKE $2
-            OR landmark ILIKE $2
+            s.name ILIKE $1 
+            OR s.area ILIKE $2 
+            OR s.landmark ILIKE $2
+            OR sa.alias ILIKE $2  -- Changed from sa.alias_name to sa.alias
         )
-        ORDER BY
-            CASE WHEN name ILIKE $1 THEN 0
-                 WHEN name ILIKE $2 THEN 1
-                 ELSE 2
+        ORDER BY 
+            CASE 
+                WHEN s.name ILIKE $1 THEN 0 
+                WHEN sa.alias ILIKE $1 THEN 1 -- Changed from sa.alias_name to sa.alias
+                ELSE 2 
             END
         LIMIT 1
         """,
